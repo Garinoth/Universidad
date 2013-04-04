@@ -5,15 +5,3 @@
 */
 
 #include "comun.h"
-
-/* FUNCION DE ERROR */
-void error (int e, int out){ // e = error code, out = flag to exit
-    switch (e) {
-        case 1: m = "No se puede ejecutar"; break;
-        case 2: m = "Timeout"; break;
-        case 3: m = "Recurso por encima del limite"; break;
-
-    }
-    fprintf(stderr, "%s: Error(%d), %s\n", Name, e, m);
-    if(out) exit(e);
-}
