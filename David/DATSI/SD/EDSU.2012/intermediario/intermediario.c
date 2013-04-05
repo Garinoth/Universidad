@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h> 
+#include <string.h> 
 
 
 /* Structure that represents a them with an array of subscribers*/
@@ -17,7 +18,7 @@ void addTheme ( char *name );
 void printThemes ();
 
 /* Global variables declaration */
-Theme themes[ 100 ];
+Theme *themes[ 100 ];
 int themeCount = 0;
 
 
@@ -32,7 +33,7 @@ int main( int argc, char *argv[] ) {
     int port = atoi( argv [ 1 ] );
     char *themesFile = argv[ 2 ];
 
-    addThemes ( themesFile );
+    addThemes( themesFile );
 
     printThemes();
 
@@ -44,21 +45,22 @@ void addThemes ( char *themesFile ) {
     FILE *file = fopen ( themesFile, "r" );
 
     if ( file != NULL ){
-        char line [ 128 ];
+        char *line = malloc( sizeof( char ) * 128 );
 
-        while ( fgets ( line, sizeof line, file ) != NULL ) {
+        while ( fgets( line, sizeof line, file ) != NULL ) {
             addTheme ( line );
         }
-        fclose ( file );
+        fclose( file );
     }
-    else perror ( themesFile );
+    else perror( themesFile );
 }
 
 
 void addTheme ( char *name ) {
-    Theme newTheme;
-    newTheme.name = name;
-    newTheme.count = 0;
+    Theme *newTheme = malloc( sizeof( Theme ) );
+    newTheme->name = malloc( sizeof name );
+    strcpy( newTheme->name, name );
+    newTheme->count = 0;
 
     themes[ themeCount++ ] = newTheme;
 
@@ -74,7 +76,7 @@ void printThemes () {
 
     int i;
     for ( i = 0; i < themeCount; i++ ) {
-        printf( "%s\n", themes[ i ].name );
+        printf( "%s\n", themes[ i ]->name );
     }
 }
     // /* Creacion del socket TCP de servicio */
