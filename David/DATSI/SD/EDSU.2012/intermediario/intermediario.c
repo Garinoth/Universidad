@@ -13,6 +13,7 @@ typedef struct {
 /* Function declaration (move to .h) */
 void addThemes ( char *themesFile );
 void addTheme ( char *name );
+Theme* searchTheme ( char *name );
 
 /* DEBUG functions */
 void printThemes ();
@@ -35,12 +36,11 @@ int main( int argc, char *argv[] ) {
 
     addThemes( themesFile );
 
-    printThemes();
-
     return 0;
 }
 
 
+/* Theme management */
 void addThemes ( char *themesFile ) {
     FILE *file = fopen ( themesFile, "r" );
 
@@ -48,6 +48,7 @@ void addThemes ( char *themesFile ) {
         char *line = malloc( sizeof( char ) * 128 );
 
         while ( fgets( line, sizeof line, file ) != NULL ) {
+            line[ strlen( line ) - 1 ] = '\0'; // Quickfix to trim \n
             addTheme ( line );
         }
         fclose( file );
@@ -58,13 +59,32 @@ void addThemes ( char *themesFile ) {
 
 void addTheme ( char *name ) {
     Theme *newTheme = malloc( sizeof( Theme ) );
-    newTheme->name = malloc( sizeof name );
+    newTheme->name = malloc( sizeof name ); 
     strcpy( newTheme->name, name );
     newTheme->count = 0;
 
     themes[ themeCount++ ] = newTheme;
 
-    fprintf( stdout,"MEDIATOR: Added new theme: %s", name );
+    fprintf( stdout,"MEDIATOR: Added new theme: %s\n", name );
+}
+
+
+Theme* searchTheme ( char *name ) {
+    Theme *res;
+    int i;
+    for ( i = 0; i < themeCount; i++ ) {
+        if ( !strcmp( name, themes[ i ]->name ) ) {
+            res = themes[ i ];
+        }
+    }
+    return res;
+}
+
+
+/* Subscription management */
+void addSubscriber ( char *themeName ) {
+    Theme *theme;
+    theme = searchTheme( themeName );
 }
 
 
