@@ -19,7 +19,7 @@ typedef struct {
 void addThemes ( char *themesFile );
 void addTheme ( char *name );
 Theme* searchTheme ( char *name );
-void startServer ( int port );
+int startServer ( int port );
 
 
 /* DEBUG functions */
@@ -40,15 +40,16 @@ int main( int argc, char *argv[] ) {
 
     int port = atoi( argv [ 1 ] );
     char *themesFile = argv[ 2 ];
+    int sid;
 
     addThemes( themesFile );
-    startServer( port );
+    sid = startServer( port );
 
     while ( 1 ) {
         fprintf(stdout,"MEDIATOR: Waiting for request\n");
 
         Message message;
-        if ( ( numbytes = recv( sid, &message, sizeof( message ), 0 ) ) < 0 ) {
+        if ( ( recv( sid, &message, sizeof( message ), 0 ) ) < 0 ) {
                 fprintf( stdout,"MEDIATOR: Request recieved: ERROR\n" );
         }
         fprintf( stdout,"MEDIATOR: Request recieved: SUCCESS\n" );
@@ -62,7 +63,7 @@ int main( int argc, char *argv[] ) {
 
 
 /* Server management */
-void startServer ( int port ) {
+int startServer ( int port ) {
     int sid;
     struct sockaddr_in sa;
     socklen_t size = sizeof( sa );
@@ -94,6 +95,8 @@ void startServer ( int port ) {
 
     /* Puerto TCP ya disponible */
     fprintf( stdout,"MEDIATOR: TCP socket READY\n" );
+
+    return sid;
 }
 
 
