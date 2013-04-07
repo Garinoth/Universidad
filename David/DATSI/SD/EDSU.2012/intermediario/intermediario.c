@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <stdlib.h> 
-#include <string.h> 
+#include <string.h>
+#include <sys/socket.h>
+#include <sys/types.h>
+#include <netinet/in.h>
+
+#include "comun.h"
 
 
 /* Structure that represents a them with an array of subscribers*/
@@ -14,13 +19,15 @@ typedef struct {
 void addThemes ( char *themesFile );
 void addTheme ( char *name );
 Theme* searchTheme ( char *name );
+void startServer ( int port );
+
 
 /* DEBUG functions */
 void printThemes ();
 
 /* Global variables declaration */
-Theme *themes[ 100 ];
-int themeCount = 0;
+Theme *themes[ 100 ]; // Stored themes
+int themeCount = 0; // Count of stored themes
 
 
 /* Main exectuion */
@@ -35,8 +42,58 @@ int main( int argc, char *argv[] ) {
     char *themesFile = argv[ 2 ];
 
     addThemes( themesFile );
+    startServer( port );
+
+    while ( 1 ) {
+        fprintf(stdout,"MEDIATOR: Waiting for request\n");
+
+        Message message;
+        if ( ( numbytes = recv( sid, &message, sizeof( message ), 0 ) ) < 0 ) {
+                fprintf( stdout,"MEDIATOR: Request recieved: ERROR\n" );
+        }
+        fprintf( stdout,"MEDIATOR: Request recieved: SUCCESS\n" );
+
+
+
+    }
 
     return 0;
+}
+
+
+/* Server management */
+void startServer ( int port ) {
+    int sid;
+    struct sockaddr_in sa;
+    socklen_t size = sizeof( sa );
+
+    /* Socket creation */
+    if ( ( sid = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ) < 0){
+        fprintf(stdout,"MEDIATOR: TCP socket creation : ERROR\n");
+        exit(-1);
+    }
+    fprintf(stdout,"MEDIATOR: TCP socket creation : SUCCESS\n");
+
+    /* Assign server port */
+    bzero( ( char * )&sa, size );
+    sa.sin_family = AF_INET;
+    sa.sin_addr.s_addr = INADDR_ANY;
+    sa.sin_port = htons( port );
+    if ( bind ( sid, ( struct sockaddr *)&sa, size ) || getsockname ( sid, ( struct sockaddr * )&sa, &size ) ) {
+        fprintf( stdout,"MEDIATOR: Server port assignation: ERROR\n" );
+        exit ( -1 );
+    }
+    fprintf( stdout,"MEDIATOR: Server port assignation: SUCCESS\n" );
+
+    /* Listen from socket */
+    if ( listen( sid, 1 ) < 0 ) {
+        fprintf( stdout,"MEDIATOR: Request acceptation: ERROR\n" );
+        exit( -1 );
+    }
+    fprintf( stdout,"MEDIATOR: Request acceptation: SUCCESS\n" );
+
+    /* Puerto TCP ya disponible */
+    fprintf( stdout,"MEDIATOR: TCP socket READY\n" );
 }
 
 
@@ -87,6 +144,14 @@ void addSubscriber ( char *themeName ) {
     theme = searchTheme( themeName );
 }
 
+void removeSubscriber () {
+
+}
+
+void notify ( char *theme ) {
+
+}
+
 
 /* DEBUG functions */
 void printThemes () {
@@ -99,74 +164,3 @@ void printThemes () {
         printf( "%s\n", themes[ i ]->name );
     }
 }
-    // /* Creacion del socket TCP de servicio */
-    // if ((sid_TCP = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0){
-    //     fprintf(stdout,"SERVIDOR: Creacion del socket TCP: ERROR\n");
-    //     exit(-1);
-    // }
-    // fprintf(stdout,"SERVIDOR: Creacion del socket TCP: OK\n");
-
-    // /* Asignacion de la direccion local (del servidor) Puerto TCP*/
-    // bzero((char *)&sa_TCP, size_TCP);
-    // sa_TCP.sin_family = AF_INET;
-    // sa_TCP.sin_addr.s_addr = INADDR_ANY;
-    // sa_TCP.sin_port = htons(0);
-    // if (bind (sid_TCP, (struct sockaddr *)&sa_TCP, size_TCP) || getsockname (sid_TCP, (struct sockaddr *)&sa_TCP, &size_TCP)) {
-    //     fprintf(stdout,"SERVIDOR: Asignacion del puerto servidor: ERROR\n");
-    //     exit (-1);
-    // }
-    // fprintf(stdout,"SERVIDOR: Asignacion del puerto servidor: OK\n");
-
-    // /* Aceptamos conexiones por el socket */
-    // if (listen(sid_TCP,1) < 0) {
-    //     fprintf(stdout,"SERVIDOR: Aceptacion de peticiones: ERROR\n");
-    //     exit(-1);
-    // }
-    // fprintf(stdout,"SERVIDOR: Aceptacion de peticiones: OK\n");
-
-    // /* Puerto TCP ya disponible */
-    // fprintf(stdout,"SERVIDOR: Puerto TCP reservado: OK\n");
-
-    // while (1) { /* Bucle de procesar peticiones */
-    //     fprintf(stdout,"SERVIDOR: Esperando mensaje.\n");
-
-    //     /* Recibo mensaje */
-    //     if ((recvfrom(sid_UDP,&message,sizeof(message),0,(struct sockaddr *)&ca,&size_ca)) < 0) {
-    //             fprintf(stdout,"SERVIDOR: Mensaje del cliente: ERROR\n");
-    //     }
-    //         fprintf(stdout,"SERVIDOR: Mensaje del cliente: OK\n");
-
-    //     if (ntohl(message.op) == QUIT) { /* Mensaje QUIT*/
-    //         fprintf(stdout,"SERVIDOR: QUIT\n");
-    //         message.op = htonl(OK);
-    //         sendto(sid_UDP,&message, sizeof(message),0,(struct sockaddr*)&ca,size_ca);
-    //         break;
-    //     }
-    //     else {
-    //         fprintf(stdout,"SERVIDOR: REQUEST(%s,%s)\n", message.local,message.remoto);
-
-    //         /* Envio del resultado */
-    //         if (access(message.remoto,F_OK) < 0) 
-    //             message.op = htonl(ERROR);
-    //         else message.op = htonl(OK);
-    //         char* res = "OK";
-    //         message.puerto = sa_TCP.sin_port;
-    //         if ((sendto(sid_UDP,&message, sizeof(message),0,(struct sockaddr*)&ca,size_ca)) < 0) res = "ERROR";
-    //         if (message.op == htonl(ERROR))
-    //             fprintf(stdout,"SERVIDOR: Enviando del resultado [ERROR]: %s\n",res);
-    //         else
-    //             fprintf(stdout,"SERVIDOR: Enviando del resultado [OK]: %s\n",res);
-
-    //         /* Esperamos la llegada de una conexion */
-    //         if ((conection = accept(sid_TCP, (struct sockaddr*)&ca, &size_ca)) < 0) {
-    //             fprintf(stdout,"SERVIDOR: Llegada de un mensaje: ERROR\n");
-    //         }
-    //         fprintf(stdout,"SERVIDOR: Llegada de un mensaje: OK\n");
-    //         fd = open(message.remoto,O_RDONLY);
-    //         while ((r = read(fd,buff,4096))){
-    //             write(conection,buff,r);
-    //         }
-    //         close(conection);
-    //         close(fd);
-    //     }
-    //     }
