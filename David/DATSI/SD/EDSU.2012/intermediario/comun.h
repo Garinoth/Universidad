@@ -3,9 +3,6 @@
    necesitar compartir todos los módulos (editor, subscriptor y
    proceso intermediario), si es que las hubiera.
 */
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <stdlib.h>
 
 #define SUBSCRIBE   1  
 #define UNSUBSCRIBE 2  

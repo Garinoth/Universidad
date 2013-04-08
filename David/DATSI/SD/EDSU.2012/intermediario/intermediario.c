@@ -9,9 +9,9 @@
 
 
 /* Structure that represents a them with an array of subscribers*/
-typedef struct {
+typedef struct Theme {
     char *name;
-    char *subcribers[ 100 ];
+    int subscribers[ 100 ];
     int count;
 } Theme;
 
@@ -20,6 +20,7 @@ void addThemes ( char *themesFile );
 void addTheme ( char *name );
 Theme* searchTheme ( char *name );
 int startServer ( int port );
+void addSubscriber ( char *themeName, int id );
 
 
 /* DEBUG functions */
@@ -48,15 +49,25 @@ int main( int argc, char *argv[] ) {
     while ( 1 ) {
         fprintf(stdout,"MEDIATOR: Waiting for request\n");
 
-        Message message;
-        if ( ( recv( sid, &message, sizeof( message ), 0 ) ) < 0 ) {
-                fprintf( stdout,"MEDIATOR: Request recieved: ERROR\n" );
-        }
-        fprintf( stdout,"MEDIATOR: Request recieved: SUCCESS\n" );
+        // Message message;
+        // if ( ( recv( sid, &message, sizeof( message ), 0 ) ) < 0 ) {
+        //     fprintf( stdout,"MEDIATOR: Request recieved: ERROR\n" );
+        // } 
+        // else {
+        //     fprintf( stdout,"MEDIATOR: Request recieved: SUCCESS\n" );
+        // }
 
-
-
+        if ( ( connection = accept(sid, (struct sockaddr*)&ca, &size_ca)) < 0) {
+                fprintf(stdout,"SERVIDOR: Llegada de un mensaje: ERROR\n");
+            }
+            fprintf(stdout,"SERVIDOR: Llegada de un mensaje: OK\n");
+            fd = open(message.remoto,O_RDONLY);
+            while ((r = read(fd,buff,4096))){
+                write(conection,buff,r);
+            }
+            close(conection);
     }
+
 
     return 0;
 }
@@ -87,7 +98,7 @@ int startServer ( int port ) {
     fprintf( stdout,"MEDIATOR: Server port assignation: SUCCESS\n" );
 
     /* Listen from socket */
-    if ( listen( sid, 1 ) < 0 ) {
+    if ( listen( sid, 0 ) < 0 ) {
         fprintf( stdout,"MEDIATOR: Request acceptation: ERROR\n" );
         exit( -1 );
     }
@@ -142,9 +153,11 @@ Theme* searchTheme ( char *name ) {
 
 
 /* Subscription management */
-void addSubscriber ( char *themeName ) {
+void addSubscriber ( char *themeName, int id ) {
     Theme *theme;
     theme = searchTheme( themeName );
+
+    theme->subscribers[ theme->count++ ] = id;
 }
 
 void removeSubscriber () {
