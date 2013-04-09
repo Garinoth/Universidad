@@ -1,17 +1,10 @@
-#include <stdio.h>
-#include <stdlib.h> 
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-
 #include "comun.h"
 
 
 /* Structure that represents a them with an array of subscribers*/
 typedef struct Theme {
-    char *name;
-    int subscribers[ 100 ];
+    char name[ 128 ];
+    int subscribers[ 128 ];
     int count;
 } Theme;
 
@@ -27,9 +20,14 @@ void addSubscriber ( char *themeName, int id );
 void printThemes ();
 
 /* Global variables declaration */
-Theme *themes[ 100 ]; // Stored themes
+Theme *themes[ 128 ]; // Stored themes
 int themeCount = 0; // Count of stored themes
 
+struct sockaddr_in sa; // Server address
+socklen_t size_sa = sizeof( sa );
+
+struct sockaddr ca; // Client address
+socklen_t size_ca = sizeof( ca );
 
 /* Main exectuion */
 int main( int argc, char *argv[] ) {
@@ -46,26 +44,36 @@ int main( int argc, char *argv[] ) {
     addThemes( themesFile );
     sid = startServer( port );
 
+    int connection;
     while ( 1 ) {
         fprintf(stdout,"MEDIATOR: Waiting for request\n");
 
-        // Message message;
-        // if ( ( recv( sid, &message, sizeof( message ), 0 ) ) < 0 ) {
-        //     fprintf( stdout,"MEDIATOR: Request recieved: ERROR\n" );
-        // } 
-        // else {
-        //     fprintf( stdout,"MEDIATOR: Request recieved: SUCCESS\n" );
-        // }
+        if ( ( connection = accept( sid, ( struct sockaddr* )&ca, &size_ca ) ) < 0 ) {
+            fprintf(stdout,"MEDIATOR: Request recieved: ERROR\n");
+        }
+        fprintf(stdout,"MEDIATOR: Request recieved: SUCCESS\n");
 
-        if ( ( connection = accept(sid, (struct sockaddr*)&ca, &size_ca)) < 0) {
-                fprintf(stdout,"SERVIDOR: Llegada de un mensaje: ERROR\n");
-            }
-            fprintf(stdout,"SERVIDOR: Llegada de un mensaje: OK\n");
-            fd = open(message.remoto,O_RDONLY);
-            while ((r = read(fd,buff,4096))){
-                write(conection,buff,r);
-            }
-            close(conection);
+        Message message;
+        int r;  
+        while ( ( r += read ( connection, &message, sizeof( message ) ) ) && r < sizeof( message ) );
+        
+        switch ( message.op ) {
+            case SUBSCRIBE :
+                addSubscriber( message.theme, connection );
+            break;
+            
+            case UNSUBSCRIBE :
+                removeSubscriber( message.theme, connection );
+            break;
+            
+            case EVENT :
+                notify( message.theme, message.value );
+            break;
+
+            default :
+                fprintf(stdout,"MEDIATOR: Unknown operation: ERROR\n");
+        }
+        close( connection );
     }
 
 
@@ -76,8 +84,6 @@ int main( int argc, char *argv[] ) {
 /* Server management */
 int startServer ( int port ) {
     int sid;
-    struct sockaddr_in sa;
-    socklen_t size = sizeof( sa );
 
     /* Socket creation */
     if ( ( sid = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ) < 0){
@@ -87,11 +93,11 @@ int startServer ( int port ) {
     fprintf(stdout,"MEDIATOR: TCP socket creation : SUCCESS\n");
 
     /* Assign server port */
-    bzero( ( char * )&sa, size );
+    bzero( ( char * )&sa, size_sa );
     sa.sin_family = AF_INET;
     sa.sin_addr.s_addr = INADDR_ANY;
     sa.sin_port = htons( port );
-    if ( bind ( sid, ( struct sockaddr *)&sa, size ) || getsockname ( sid, ( struct sockaddr * )&sa, &size ) ) {
+    if ( bind ( sid, ( struct sockaddr *)&sa, size_sa ) || getsockname ( sid, ( struct sockaddr * )&sa, &size_sa ) ) {
         fprintf( stdout,"MEDIATOR: Server port assignation: ERROR\n" );
         exit ( -1 );
     }
@@ -130,7 +136,6 @@ void addThemes ( char *themesFile ) {
 
 void addTheme ( char *name ) {
     Theme *newTheme = malloc( sizeof( Theme ) );
-    newTheme->name = malloc( sizeof name ); 
     strcpy( newTheme->name, name );
     newTheme->count = 0;
 
@@ -160,11 +165,11 @@ void addSubscriber ( char *themeName, int id ) {
     theme->subscribers[ theme->count++ ] = id;
 }
 
-void removeSubscriber () {
+void removeSubscriber ( char *themeName, int id ) {
 
 }
 
-void notify ( char *theme ) {
+void notify ( char *themeName, char *event ) {
 
 }
 
