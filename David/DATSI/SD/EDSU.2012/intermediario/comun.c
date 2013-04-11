@@ -5,3 +5,10 @@
 */
 
 #include "comun.h"
+
+Message recieveResponse( int connection ) {
+    Message message;
+    int r;
+    while ( ( r += read ( connection, &message, sizeof( message ) ) ) && r < sizeof( message ) );
+    return message;
+}

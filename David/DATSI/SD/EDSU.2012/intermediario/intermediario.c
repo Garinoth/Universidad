@@ -4,17 +4,20 @@
 /* Structure that represents a them with an array of subscribers*/
 typedef struct Theme {
     char name[ 128 ];
-    int subscribers[ 128 ];
+    struct sockaddr subscribers[ 128 ];
     int count;
 } Theme;
 
 /* Function declaration (move to .h) */
 void addThemes ( char *themesFile );
 void addTheme ( char *name );
-Theme* searchTheme ( char *name );
+Theme* searchTheme ( char *name, int *pos );
 int startServer ( int port );
-void addSubscriber ( char *themeName, int id );
-
+void sendResponse( int op, int sid );
+int addSubscriber ( char *themeName, struct sockaddr address );
+int removeSubscriber ( char *themeName, struct sockaddr address );
+void notify ( char *themeName, char *event );
+int searchSubscriber ( struct sockaddr address, Theme *theme );
 
 /* DEBUG functions */
 void printThemes ();
@@ -53,17 +56,25 @@ int main( int argc, char *argv[] ) {
         }
         fprintf(stdout,"MEDIATOR: Request recieved: SUCCESS\n");
 
-        Message message;
-        int r;  
-        while ( ( r += read ( connection, &message, sizeof( message ) ) ) && r < sizeof( message ) );
-        
+        Message message = recieveResponse( connection );
+
         switch ( message.op ) {
             case SUBSCRIBE :
-                addSubscriber( message.theme, connection );
+                if ( addSubscriber( message.theme, ca ) < 0 ) {
+                    sendResponse( ERROR, connection );
+                }
+                else {
+                    sendResponse( OK, connection );
+                }
             break;
             
             case UNSUBSCRIBE :
-                removeSubscriber( message.theme, connection );
+                if ( removeSubscriber( message.theme, ca ) < 0 ) {
+                    sendResponse( ERROR, connection );
+                }
+                else {
+                    sendResponse( OK, connection );
+                }
             break;
             
             case EVENT :
@@ -117,6 +128,15 @@ int startServer ( int port ) {
 }
 
 
+void sendResponse( int op, int connection ) { // needs error handling
+    Message message;
+    message.op = op;
+
+    int r;
+    while ( ( r += write ( connection, &message, sizeof( message ) ) ) && r < sizeof( message ) );
+}
+
+
 /* Theme management */
 void addThemes ( char *themesFile ) {
     FILE *file = fopen ( themesFile, "r" );
@@ -145,32 +165,76 @@ void addTheme ( char *name ) {
 }
 
 
-Theme* searchTheme ( char *name ) {
-    Theme *res;
-    int i;
-    for ( i = 0; i < themeCount; i++ ) {
+Theme* searchTheme ( char *name, int *pos ) {
+    Theme *theme = NULL;
+    int i = 0;
+    while ( ( i < themeCount ) && ( theme == NULL ) ) {
         if ( !strcmp( name, themes[ i ]->name ) ) {
-            res = themes[ i ];
+            theme = themes[ i ];
+            if ( pos ) *pos = i;
         }
+        i++;
     }
-    return res;
+
+    return theme;
 }
 
 
 /* Subscription management */
-void addSubscriber ( char *themeName, int id ) {
+int addSubscriber ( char *themeName, struct sockaddr address ) {
     Theme *theme;
-    theme = searchTheme( themeName );
+    if ( ( theme = searchTheme( themeName, NULL ) ) == NULL ) {
+        return -1;
+    }
 
-    theme->subscribers[ theme->count++ ] = id;
+    theme->subscribers[ theme->count++ ] = address;
+
+    return 0;
 }
 
-void removeSubscriber ( char *themeName, int id ) {
+int removeSubscriber ( char *themeName, struct sockaddr address ) {
+    Theme *theme;
+    if ( ( theme = searchTheme( themeName, NULL ) ) == NULL ) {
+        return -1;
+    }
 
+    int pos;
+    if ( ( pos = searchSubscriber( address, theme ) ) < 0 ) {
+        return -1;
+    }
+
+    int i;
+    for ( i = pos; i < theme->count; i++ ) {
+        theme->subscribers[ i ] = theme->subscribers[ i + 1 ];
+    }
+    theme->count--;
+    return 0;
 }
 
 void notify ( char *themeName, char *event ) {
 
+}
+
+int searchSubscriber ( struct sockaddr address, Theme *theme ) {
+    int i = 0;
+    int res = -1;
+
+    struct sockaddr_in *aux1 = (struct sockaddr_in*) &address;
+
+    while ( ( i < theme->count ) && ( res == -1 ) ) {
+
+        struct sockaddr_in *aux2 = (struct sockaddr_in*) &theme->subscribers[ i ];
+        
+        if ( aux1->sin_addr.s_addr == aux2->sin_addr.s_addr ) {
+            res = i;
+        }
+
+        // if ( !strcmp( address.sa_data, theme->subscribers[ i ].sa_data ) ) {
+        //     res = i;
+        // }
+        i++;
+    }
+    return res;
 }
 
 

@@ -29,7 +29,7 @@ int main(int argc, char *argv[]) {
                 	fprintf(stderr, "Error en subscripción a tema %s\n",
 				 argv[i]);
 
-	sem_wait(&sem);
+	//sem_wait(&sem);
 
 	for (i=2; i<argc; i++) 
 		if (baja_subscripcion_tema(argv[i])<0)

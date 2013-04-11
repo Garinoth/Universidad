@@ -13,4 +13,6 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-int connectToMediator ();
+int createSocket();
+int connectToMediator();
+void sendMessage( int sid, int op, const char *tema, const char *valor );

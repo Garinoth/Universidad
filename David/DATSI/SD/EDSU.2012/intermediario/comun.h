@@ -14,9 +14,11 @@
 #include <arpa/inet.h>
 
 
-#define SUBSCRIBE   1  
-#define UNSUBSCRIBE 2  
-#define EVENT       3  
+#define OK          0
+#define ERROR       1
+#define SUBSCRIBE   2  
+#define UNSUBSCRIBE 3  
+#define EVENT       4  
 
 typedef struct Message {
   	int  op;
@@ -24,3 +26,5 @@ typedef struct Message {
   	char theme [ 128 ];
   	char value [ 256 ];
 } Message;
+
+Message recieveResponse( int connection );
