@@ -15,4 +15,3 @@
 
 int createSocket();
 int connectToMediator();
-void sendMessage( int sid, int op, const char *tema, const char *valor );

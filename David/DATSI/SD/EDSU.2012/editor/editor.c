@@ -13,7 +13,8 @@ int generar_evento( const char *tema, const char *valor ) {
         return -1;
     }
 
-    sendMessage( sid, EVENT, tema, NULL );
+    struct sockaddr_in dummy;
+    sendMessage( sid, EVENT, tema, valor, dummy );
 
     return 0;
 }
@@ -27,4 +28,3 @@ int crear_tema(const char *tema) {
 int eliminar_tema(const char *tema) {
 	return 0;
 }
-

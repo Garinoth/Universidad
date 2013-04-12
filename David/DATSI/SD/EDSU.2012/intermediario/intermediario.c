@@ -4,7 +4,7 @@
 /* Structure that represents a them with an array of subscribers*/
 typedef struct Theme {
     char name[ 128 ];
-    struct sockaddr subscribers[ 128 ];
+    struct sockaddr_in subscribers[ 128 ];
     int count;
 } Theme;
 
@@ -14,10 +14,10 @@ void addTheme ( char *name );
 Theme* searchTheme ( char *name, int *pos );
 int startServer ( int port );
 void sendResponse( int op, int sid );
-int addSubscriber ( char *themeName, struct sockaddr address );
-int removeSubscriber ( char *themeName, struct sockaddr address );
-void notify ( char *themeName, char *event );
-int searchSubscriber ( struct sockaddr address, Theme *theme );
+int addSubscriber ( char *themeName, struct sockaddr_in address );
+int removeSubscriber ( char *themeName, struct sockaddr_in address );
+void notify ( char *themeName, char *event, int sid );
+int searchSubscriber ( struct sockaddr_in address, Theme *theme );
 
 /* DEBUG functions */
 void printThemes ();
@@ -60,7 +60,7 @@ int main( int argc, char *argv[] ) {
 
         switch ( message.op ) {
             case SUBSCRIBE :
-                if ( addSubscriber( message.theme, ca ) < 0 ) {
+                if ( addSubscriber( message.theme, message.saddr ) < 0 ) {
                     sendResponse( ERROR, connection );
                 }
                 else {
@@ -69,7 +69,7 @@ int main( int argc, char *argv[] ) {
             break;
             
             case UNSUBSCRIBE :
-                if ( removeSubscriber( message.theme, ca ) < 0 ) {
+                if ( removeSubscriber( message.theme, message.saddr ) < 0 ) {
                     sendResponse( ERROR, connection );
                 }
                 else {
@@ -78,7 +78,7 @@ int main( int argc, char *argv[] ) {
             break;
             
             case EVENT :
-                notify( message.theme, message.value );
+                notify( message.theme, message.value, sid );
             break;
 
             default :
@@ -181,7 +181,7 @@ Theme* searchTheme ( char *name, int *pos ) {
 
 
 /* Subscription management */
-int addSubscriber ( char *themeName, struct sockaddr address ) {
+int addSubscriber ( char *themeName, struct sockaddr_in address ) {
     Theme *theme;
     if ( ( theme = searchTheme( themeName, NULL ) ) == NULL ) {
         return -1;
@@ -192,7 +192,7 @@ int addSubscriber ( char *themeName, struct sockaddr address ) {
     return 0;
 }
 
-int removeSubscriber ( char *themeName, struct sockaddr address ) {
+int removeSubscriber ( char *themeName, struct sockaddr_in address ) {
     Theme *theme;
     if ( ( theme = searchTheme( themeName, NULL ) ) == NULL ) {
         return -1;
@@ -211,27 +211,37 @@ int removeSubscriber ( char *themeName, struct sockaddr address ) {
     return 0;
 }
 
-void notify ( char *themeName, char *event ) {
+void notify ( char *themeName, char *event, int sid ) {
+    Theme *theme;
+    if ( ( theme = searchTheme( themeName, NULL ) ) == NULL ) {
+        return;
+    }
+
+    int i;
+    for ( i = 0; i < theme->count; i++ ) {
+
+        int sid;
+        sid = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP );
+
+        int connection;
+        if( ( connection = connect( sid, ( struct sockaddr* )&theme->subscribers[ i ], sizeof( struct sockaddr_in ) ) ) < 0 ) {
+            close(sid); 
+        }
+
+        struct sockaddr_in dummy;
+        sendMessage( sid, EVENT, themeName, event, dummy );
+    }
 
 }
 
-int searchSubscriber ( struct sockaddr address, Theme *theme ) {
+int searchSubscriber ( struct sockaddr_in address, Theme *theme ) {
     int i = 0;
     int res = -1;
 
-    struct sockaddr_in *aux1 = (struct sockaddr_in*) &address;
-
-    while ( ( i < theme->count ) && ( res == -1 ) ) {
-
-        struct sockaddr_in *aux2 = (struct sockaddr_in*) &theme->subscribers[ i ];
-        
-        if ( aux1->sin_addr.s_addr == aux2->sin_addr.s_addr ) {
+    while ( ( i < theme->count ) && ( res == -1 ) ) {        
+        if ( address.sin_addr.s_addr == theme->subscribers[ i ].sin_addr.s_addr ) {
             res = i;
         }
-
-        // if ( !strcmp( address.sa_data, theme->subscribers[ i ].sa_data ) ) {
-        //     res = i;
-        // }
         i++;
     }
     return res;

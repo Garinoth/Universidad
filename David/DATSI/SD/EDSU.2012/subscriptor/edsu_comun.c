@@ -9,7 +9,7 @@
 
 int createSocket() {
     int sid;
-    if ( ( sid = socket( AF_INET, SOCK_STREAM, 0 ) ) < 0 ) {
+    if ( ( sid = socket( AF_INET, SOCK_STREAM, IPPROTO_TCP ) ) < 0 ) {
         return -1;
     }
     return sid;
@@ -31,13 +31,4 @@ int connectToMediator( int sid ) {
         return -1;    
     }
     return connection;
-}
-
-void sendMessage( int sid, int op, const char *tema, const char *valor ) {
-    Message message;
-    message.op = op;
-    if ( tema ) strcpy( message.theme, tema );
-    if ( valor ) strcpy( message.value, valor );
-
-    send( sid, &message, sizeof( message ), 0 );
 }

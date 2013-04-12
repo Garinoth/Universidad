@@ -25,6 +25,8 @@ typedef struct Message {
   	int  port;
   	char theme [ 128 ];
   	char value [ 256 ];
+    struct sockaddr_in saddr;
 } Message;
 
 Message recieveResponse( int connection );
+void sendMessage( int sid, int op, const char *tema, const char *valor, struct sockaddr_in saddr );
