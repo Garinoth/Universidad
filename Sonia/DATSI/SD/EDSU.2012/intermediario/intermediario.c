@@ -1,28 +1,26 @@
-#include <stdio.h>
+#include "comun.h"
 
 /*Estructura de cada tema con un nombre, la lista de sus suscriptores
   y el número de los mismos*/
 typedef struct {
 	char *name; 
-	char *subscribers[1000];
+	struct sockaddr_in subscribers[1000];
 	int nsubs;
 } Theme;
 
 Theme *themes[1000];
 int nThemes = 0;
 
-struct sockaddr sa {
-	unsigned shot sa_family;
-	char sa_data[14];
-}
+struct sockaddr_in s_ain_TCP, c_ain;
+socklen_t size_TCP = sizeof(s_ain_TCP), size_c_ain = sizeof(c_ain);
 
 void addThemes (char *fileThemes) {
 	FILE *file = fopen (fileThemes, "r");
 
 	if (file != NULL){
-		char *theme = malloc (sizeof (char)*128));
+		char *theme = malloc (sizeof (char)*128);
 	
-		while (fgets (theme, sizeof theme, file) =! NULL){
+		while (fgets (theme, sizeof theme, file) != NULL){
 			theme[strlen(theme)-1] = '\0';
 			Theme *newTheme = malloc (sizeof(Theme));
 			newTheme->name = malloc (sizeof theme);
@@ -36,8 +34,65 @@ void addThemes (char *fileThemes) {
 	else perror(fileThemes);
 }
 
+int addSubscriber (struct sockaddr_in subscriber, char* theme){
+	int i;
+	for (i = 0; i < nThemes; i++){
+		if (!strcmp(theme,themes[i]->name)){
+			themes[i]->subscribers[themes[i]->nsubs++] = subscriber;
+			return 0;
+		}
+	}
+	return -1;
+}
+
+int removeSubscriber (struct sockaddr_in subscriber, char* theme){
+	int i;
+	for (i = 0; i < nThemes; i++){
+		if (!strcmp(theme,themes[i]->name)){
+			int j;
+			for (j = 0; j < themes[i]->nsubs; j++){
+				if (subscriber.sin_addr.s_addr == themes[i]->subscribers[j].sin_addr.s_addr){
+					int k;
+					for (k = j; k < themes[i]->nsubs; k++) {
+						themes[i]->subscribers[k]=themes[i]->subscribers[k+1];
+					}
+				themes[i]->nsubs--;
+				return 0;
+				}
+			}
+		}
+	}
+	return -1;
+}
+
+void sendEvent (char* theme, char* value){
+	int i;
+	for (i = 0; i < nThemes; i++){
+		if (!strcmp(theme,themes[i]->name)){
+			int j;
+			for (j = 0; j < themes[i]->nsubs; j++){
+				int sd;
+				sd = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+				connect(sd, (struct sockaddr*)&themes[i]->subscribers[j], sizeof(struct sockaddr_in));
+				sendMessage(sd, EVENT, theme, value);
+			}
+		}
+	}
+}
+
+void responseSubs (int op, int c){
+		int wr;
+		Message message;
+		message.op = op;
+
+		while((wr += write(c, &message, sizeof(message))) && wr < sizeof(message));
+}
+
+
 int initServer (int port) {
 	
+	int sd_TCP;
+
 	/* Creacion del socket TCP de servicio */
     if((sd_TCP = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP)) < 0){
 		fprintf(stdout,"INTERMEDIARIO: Creacion del socket TCP: ERROR\n");
@@ -83,60 +138,43 @@ void connection (int sd_TCP) {
 	while(1 /* Bucle de procesar peticiones */){
 		fprintf(stdout,"INTERMEDIARIO: Esperando mensaje.\n");
 
-		/* Recibo mensaje */
-		if(recvfrom(sd_UDP, &mensaje, sizeof(mensaje), 0, (struct sockaddr *)&c_ain, &size_c_ain) < 0){ 
-			fprintf(stdout,"INTERMEDIARIO: Mensaje del cliente: ERROR\n");
+		int con;
+		/* Esperamos la llegada de una conexion */
+		if((con = accept(sd_TCP, (struct sockaddr *)&c_ain, &size_c_ain)) < 0){
+			fprintf(stdout,"INTERMEDIARIO: Llegada de un mensaje: ERROR\n");
 		}
 		else{
-			fprintf(stdout,"INTERMEDIARIO: Mensaje del cliente: OK\n");
-		}
+			fprintf(stdout,"INTERMEDIARIO: Llegada de un mensaje: OK\n");
+			int rd;
+			Message m;
+			while((rd += read(con, &m, sizeof(m))) && rd < sizeof(m));
 	  
-		if(ntohl(mensaje.op) == QUIT/* Mensaje QUIT*/){
-			fprintf(stdout,"INTERMEDIARIO: QUIT\n");
-			mensaje.op = htonl(OK);
-			sendto(sd_UDP, &mensaje, sizeof(mensaje), 0, (struct sockaddr *)&c_ain, size_c_ain);
-			fprintf(stdout,"INTERMEDIARIO: Finalizado\n");
-			exit(0);
-		}
-		else{
-			fprintf(stdout,"INTERMEDIARIO: REQUEST(%s,%s)\n", mensaje.local, mensaje.remoto);
-			/* Envio del resultado */
-			if((fd = open(mensaje.remoto, O_RDONLY)) < 0){
-				mensaje.op = htonl(ERROR);
-				if(sendto(sd_UDP, &mensaje, sizeof(mensaje), 0, (struct sockaddr *)&c_ain, size_c_ain) < 0){
-					fprintf(stdout,"INTERMEDIARIO: Enviando del resultado [ERROR]: ERROR\n");
+			if(m.op == SUBSCRIBE){
+				if (addSubscriber(m.saddr, m.theme) == 0){
+					responseSubs(OK, con);
 				}
-				else{
-					fprintf(stdout,"INTERMEDIARIO: Enviando del resultado [ERROR]: OK\n");
-				}
-			}  
-			else{
-				mensaje.op = htonl(OK);
-				mensaje.puerto = s_ain_TCP.sin_port;
-				if(sendto(sd_UDP, &mensaje, sizeof(mensaje), 0, (struct sockaddr *)&c_ain, size_c_ain) < 0){
-					fprintf(stdout,"INTERMEDIARIO: Enviando del resultado [OK]: ERROR\n");
-				}
-				else{
-					fprintf(stdout,"INTERMEDIARIO: Enviando del resultado [OK]: OK\n");
+				else {
+					responseSubs(ERROR,con);
 				}
 			}
 
-			/* Esperamos la llegada de una conexion */
-			if((cd = accept(sd_TCP, (struct sockaddr *)&c_ain, &size_c_ain)) < 0){
-				fprintf(stdout,"INTERMEDIARIO: Llegada de un mensaje: ERROR\n");
-			}
-			else{
-				fprintf(stdout,"INTERMEDIARIO: Llegada de un mensaje: OK\n");
-				int rd;
-				char buf[4096];
-				while((rd = read(fd, buf, 4096)) != 0){
-					write(cd, buf, rd);
+			else if(m.op == UNSUBSCRIBE){
+				if (removeSubscriber(m.saddr, m.theme) == 0){
+					responseSubs(OK, con);
 				}
-				close(fd);
-				close(cd);
+				else {
+					responseSubs(ERROR,con);
+				}
+			}		
+
+			else if(m.op == EVENT){
+				sendEvent(m.theme, m.value);
 			}
-		}
-  
+
+			else {
+				fprintf(stderr, "INTERMEDIARIO: Operación no admitida, ERROR.");
+			}
+		}	
 	}
 }
 
