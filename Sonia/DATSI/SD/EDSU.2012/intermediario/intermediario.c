@@ -68,7 +68,6 @@ int removeSubscriber (struct sockaddr_in subscriber, char* theme){
 
 int sendEvent (char* theme, char* value){
 	int i;
-	int j = 0;
 	for (i = 0; i < nThemes; i++){
 		if (!strcmp(theme,themes[i]->name)){
 			int j;
@@ -78,15 +77,10 @@ int sendEvent (char* theme, char* value){
 				connect(sd, (struct sockaddr*)&themes[i]->subscribers[j], sizeof(struct sockaddr_in));
 				sendMessage(sd, EVENT, theme, value);
 			}
-		j++;
+		return 0;
 		}
 	}
-	if (j == 0) {
-		return -1;
-	}
-	else {
-		return 0;
-	}
+	return -1;
 }
 
 void responseSubs (int op, int c){
@@ -178,6 +172,7 @@ void connection (int sd_TCP) {
 
 			else if(m.op == EVENT){
 				if (sendEvent(m.theme, m.value) == 0) {
+					printf("WAAAAAAAAAAAAAAAAAAAAAAAAARG\n");
 					responseSubs(OK,con);
 				}
 				else {
