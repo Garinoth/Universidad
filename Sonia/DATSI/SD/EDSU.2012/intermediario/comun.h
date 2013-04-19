@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <netdb.h>
 
 #define OK          0
 #define SUBSCRIBE   1  

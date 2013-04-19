@@ -2,7 +2,7 @@
 
 /*Estructura de cada tema con un nombre, la lista de sus suscriptores
   y el número de los mismos*/
-typedef struct {
+typedef struct Theme {
 	char *name; 
 	struct sockaddr_in subscribers[1000];
 	int nsubs;
@@ -65,8 +65,10 @@ int removeSubscriber (struct sockaddr_in subscriber, char* theme){
 	return -1;
 }
 
-void sendEvent (char* theme, char* value){
+
+int sendEvent (char* theme, char* value){
 	int i;
+	int j = 0;
 	for (i = 0; i < nThemes; i++){
 		if (!strcmp(theme,themes[i]->name)){
 			int j;
@@ -76,7 +78,14 @@ void sendEvent (char* theme, char* value){
 				connect(sd, (struct sockaddr*)&themes[i]->subscribers[j], sizeof(struct sockaddr_in));
 				sendMessage(sd, EVENT, theme, value);
 			}
+		j++;
 		}
+	}
+	if (j == 0) {
+		return -1;
+	}
+	else {
+		return 0;
 	}
 }
 
@@ -168,7 +177,12 @@ void connection (int sd_TCP) {
 			}		
 
 			else if(m.op == EVENT){
-				sendEvent(m.theme, m.value);
+				if (sendEvent(m.theme, m.value) == 0) {
+					responseSubs(OK,con);
+				}
+				else {
+					responseSubs(ERROR,con);
+				}
 			}
 
 			else {

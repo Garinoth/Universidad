@@ -12,11 +12,14 @@ int conMediator (int sd) {
     char* mediator = getenv("SERVIDOR");
     int port = atoi(getenv("PUERTO"));
 
+    struct hostent *Nmediator;
+    Nmediator = gethostbyname(mediator);
+
     struct sockaddr_in s_ain_TCP;
 
     bzero((char *)&s_ain_TCP, sizeof(s_ain_TCP));
     s_ain_TCP.sin_family = AF_INET;
-    s_ain_TCP.sin_addr.s_addr = inet_addr(mediator);
+    memcpy(&s_ain_TCP.sin_addr.s_addr, Nmediator->h_addr, Nmediator->h_length);
     s_ain_TCP.sin_port = htons(port);
 
     int con;

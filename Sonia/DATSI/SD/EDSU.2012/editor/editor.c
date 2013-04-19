@@ -13,7 +13,12 @@ int generar_evento(const char *tema, const char *valor) {
     }
 
     sendMessage(sd, EVENT, tema, valor);
-	return 0;
+
+    Message m;
+    recv(sd, &m, sizeof(m), 0);
+
+    if (m.op == OK) return 0;
+    else return -1;
 }
 
 /* solo para la version avanzada */
