@@ -16,7 +16,7 @@ int startServer ( int port );
 void sendResponse( int op, int sid );
 int addSubscriber ( char *themeName, struct sockaddr_in address );
 int removeSubscriber ( char *themeName, struct sockaddr_in address );
-void notify ( char *themeName, char *event, int sid );
+int notify ( char *themeName, char *event, int sid );
 int searchSubscriber ( struct sockaddr_in address, Theme *theme );
 
 /* DEBUG functions */
@@ -66,7 +66,7 @@ int main( int argc, char *argv[] ) {
                 else {
                     sendResponse( OK, connection );
                 }
-            break;
+                break;
             
             case UNSUBSCRIBE :
                 if ( removeSubscriber( message.theme, message.saddr ) < 0 ) {
@@ -75,12 +75,16 @@ int main( int argc, char *argv[] ) {
                 else {
                     sendResponse( OK, connection );
                 }
-            break;
+                break;
             
             case EVENT :
-                notify( message.theme, message.value, sid );
-            break;
-
+                if ( notify( message.theme, message.value, sid ) < 0 ) {
+                    sendResponse( ERROR, connection );
+                }
+                else {
+                    sendResponse( OK, connection );
+                }
+                break;
             default :
                 fprintf(stdout,"MEDIATOR: Unknown operation: ERROR\n");
         }
@@ -211,10 +215,10 @@ int removeSubscriber ( char *themeName, struct sockaddr_in address ) {
     return 0;
 }
 
-void notify ( char *themeName, char *event, int sid ) {
+int notify ( char *themeName, char *event, int sid ) {
     Theme *theme;
     if ( ( theme = searchTheme( themeName, NULL ) ) == NULL ) {
-        return;
+        return -1;
     }
 
     int i;
@@ -231,7 +235,7 @@ void notify ( char *themeName, char *event, int sid ) {
         struct sockaddr_in dummy;
         sendMessage( sid, EVENT, themeName, event, dummy );
     }
-
+    return 0;
 }
 
 int searchSubscriber ( struct sockaddr_in address, Theme *theme ) {

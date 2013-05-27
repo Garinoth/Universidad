@@ -19,10 +19,13 @@ int connectToMediator( int sid ) {
     char *host = getenv( "SERVIDOR" );
     int port = atoi ( getenv( "PUERTO" ) );
 
+    struct hostent *host_info;
+    host_info = gethostbyname( host );
+
     struct sockaddr_in sa;
     bzero( ( char* )&sa, sizeof( struct sockaddr_in ) );
     sa.sin_family=AF_INET;
-    sa.sin_addr.s_addr=inet_addr( host );
+    memcpy( &sa.sin_addr.s_addr, host_info->h_addr, host_info->h_length );
     sa.sin_port=htons( port );
 
     int connection;

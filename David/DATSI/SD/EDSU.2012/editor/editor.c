@@ -16,6 +16,14 @@ int generar_evento( const char *tema, const char *valor ) {
     struct sockaddr_in dummy;
     sendMessage( sid, EVENT, tema, valor, dummy );
 
+    Message message;
+    recv( sid, &message, sizeof( message ), 0 );
+
+    if ( message.op == OK ) {
+        return 0;
+    }
+    else return -1;
+
     return 0;
 }
 
