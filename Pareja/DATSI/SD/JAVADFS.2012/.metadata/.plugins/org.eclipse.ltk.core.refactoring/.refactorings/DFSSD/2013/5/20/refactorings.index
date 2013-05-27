@@ -1,0 +1,5 @@
+1368644004901	Delete elements
+1368650668708	Encapsulate field 'servicio'
+1368723959387	Encapsulate field 'tamBloque'
+1368723966875	Encapsulate field 'tamCache'
+1368817340015	Rename local variable 'l'

@@ -1,0 +1,2 @@
+INDEX VERSION 1.126+/home/garinoth/Dropbox/David y Sonia/Repositories/Universidad/Pareja/DATSI/SD/JAVADFS.2012/.metadata/.plugins/org.eclipse.jdt.core
+3672765663.index

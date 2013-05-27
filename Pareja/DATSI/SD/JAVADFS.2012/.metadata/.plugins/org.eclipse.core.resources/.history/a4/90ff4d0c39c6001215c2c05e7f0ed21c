@@ -1,0 +1,27 @@
+// Clase de servidor que implementa el servicio DFS
+
+package dfs;
+
+import java.io.FileNotFoundException;
+import java.rmi.*;
+import java.rmi.server.*;
+import java.util.HashMap;
+
+@SuppressWarnings("serial")
+public class DFSServicioImpl extends UnicastRemoteObject implements DFSServicio {
+
+	private HashMap<String, DFSFicheroServ> abiertos;
+
+	public DFSServicioImpl() throws RemoteException {
+		this.abiertos = new HashMap<String, DFSFicheroServ>();
+	}
+	public DFSFicheroServ abrir ( String nombre, String modo ) throws RemoteException, FileNotFoundException {
+		DFSFicheroServImpl res = null;
+		if (this.abiertos.containsKey(nombre)) {
+			res = this.abiertos.get(nombre);
+			}
+		else {
+			res = new DFSFicheroServImpl(nombre, modo);
+		}
+	}
+}
