@@ -80,17 +80,15 @@ int inicio_subscriptor(void (*notif_evento)(const char *, const char *),
         return -1;
     }
 
-    ev_port = 2000;
     size_ca = sizeof( ca );
 
     bzero( ( char * )&ca, size_ca );
     ca.sin_family = AF_INET;
     ca.sin_addr.s_addr = INADDR_ANY;
-    ca.sin_port = htons( ev_port );
+    ca.sin_port = htons( 0 );
 
     while ( bind ( sid_ev, ( struct sockaddr *)&ca, size_ca ) || getsockname ( sid_ev, ( struct sockaddr * )&ca, &size_ca ) ) {
-        ev_port++;
-        ca.sin_port = htons( ev_port );
+        return -1;
     }
 
     if ( listen( sid_ev, 0 ) < 0 ) {
