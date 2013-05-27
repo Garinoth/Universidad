@@ -1,0 +1,33 @@
+// Clase de cliente que proporciona el API del servicio DFS
+
+package dfs;
+
+import java.io.*;
+import java.rmi.*;
+
+public class DFSFicheroCliente  {
+	
+	private DFSServicio srv;
+	private DFSFicheroServ f;
+	
+    public DFSFicheroCliente(DFSCliente dfs, String nombre, String modo) throws RemoteException, IOException, FileNotFoundException {
+    	this.srv = dfs.getServicio();
+    	this.f = (DFSFicheroServ) srv.abrir(nombre, modo);
+    }
+    public int read(byte[] b) throws RemoteException, IOException {
+    	byte[] buff = f.read();
+    	int r = buff.length;
+    	System.out.println(r);
+    	System.arraycopy(buff, 0, b, 0, r);
+    	return r;
+    }
+    public void write(byte[] b) throws RemoteException, IOException {
+    	f.write(b);
+    }
+    public void seek(long p) throws RemoteException, IOException {
+    	f.seek(p);
+    }
+    public void close() throws RemoteException, IOException {
+    	f.close();
+    }
+}
